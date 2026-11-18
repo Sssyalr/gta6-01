@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOLMAR HEAT — open-world crime in Solmar Bay</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a121a;font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;color:#fff}
+  #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  .panel{background:rgba(8,16,24,.72);border:1px solid rgba(255,255,255,.18);border-radius:10px;backdrop-filter:blur(3px)}
+  #hud{position:fixed;inset:0;pointer-events:none;display:none}
+  #topleft{position:absolute;top:12px;left:12px;padding:10px 14px;min-width:230px}
+  #healthbar{width:200px;height:14px;background:#222;border-radius:7px;overflow:hidden;border:1px solid #555}
+  #health-fill{height:100%;width:100%;background:linear-gradient(90deg,#37d67a,#a8e063)}
+  #cash{font-size:26px;font-weight:800;color:#f2c94c;margin-top:6px}
+  #debt{font-size:13px;color:#ffb0a0;letter-spacing:1px}
+  #stars{position:absolute;top:12px;right:12px;font-size:30px;letter-spacing:4px;padding:4px 14px}
+  #obj{position:absolute;top:12px;left:50%;transform:translateX(-50%);text-align:center;padding:8px 18px;max-width:46%}
+  #mission-name{font-size:12px;letter-spacing:2px;color:#f2c94c}
+  #objective{font-size:16px;font-weight:700;margin-top:2px}
+  #minimap{position:absolute;right:12px;bottom:12px;border-radius:10px;border:2px solid rgba(255,255,255,.35)}
+  #speed-box{position:absolute;right:206px;bottom:12px;padding:8px 14px;text-align:center}
+  #speed{font-size:34px;font-weight:800;line-height:1}
+  #speed-box small{color:#aaa;font-size:11px;letter-spacing:2px}
+  #timer{position:absolute;top:70px;left:50%;transform:translateX(-50%);font-size:24px;font-weight:800;color:#ff5040;padding:4px 16px;display:none}
+  #banner{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);font-size:26px;font-weight:800;color:#f2c94c;text-shadow:0 2px 12px #000;opacity:0;transition:opacity .3s;text-align:center;max-width:88vw}
+  #hint{position:absolute;bottom:12px;left:12px;font-size:13px;color:#ddd;padding:7px 12px}
+  .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,rgba(10,20,40,.82),rgba(120,40,20,.55));z-index:5}
+  .card{max-width:620px;padding:34px 44px;text-align:center;border-radius:16px;background:rgba(8,16,24,.85);border:1px solid rgba(242,201,76,.5)}
+  .card h1{font-size:64px;margin:0;letter-spacing:4px;color:#f2c94c;text-shadow:0 4px 0 #a33d00,0 8px 24px #000}
+  .card h2{font-size:13px;letter-spacing:4px;color:#7fc4c9;margin:6px 0 0}
+  .card p{font-size:16px;line-height:1.55;color:#e8e8e8;text-align:left}
+  .card .controls{font-size:14px;color:#c8d4dc;text-align:left;line-height:1.7;background:rgba(255,255,255,.06);padding:12px 16px;border-radius:8px}
+  button{pointer-events:auto;cursor:pointer;font-size:18px;font-weight:800;padding:12px 34px;margin:8px 6px 0;border:0;border-radius:10px;background:#f2c94c;color:#222;letter-spacing:1px}
+  button:hover{background:#ffd95e}
+  button.ghost{background:transparent;color:#fff;border:2px solid #fff}
+  #intro{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;display:none;max-width:520px;padding:26px 32px;text-align:center}
+  #intro-title{font-size:24px;font-weight:800;color:#f2c94c;margin:0 0 10px}
+  #intro-text{font-size:16px;line-height:1.5;margin:0 0 14px}
+  #status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+</style>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div id="topleft" class="panel"><div id="healthbar"><div id="health-fill"></div></div><div style="font-size:12px;margin-top:3px">HEALTH <span id="health-num">100</span> · AMMO <span id="ammo-num">12</span></div><div id="cash">$0</div><div id="debt">DEBT: $50,000</div></div>
+  <div id="stars" class="panel">☆☆☆☆☆</div>
+  <div id="obj" class="panel"><div id="mission-name">MISSION 1/4</div><div id="objective">—</div></div>
+  <div id="timer" class="panel">⏱ 150s</div>
+  <div id="banner"></div>
+  <div id="speed-box" class="panel"><div id="speed">0</div><small>KM/H</small></div>
+  <canvas id="minimap" width="180" height="180"></canvas>
+  <div id="hint" class="panel"></div>
+</div>
+<div id="intro" class="panel"><p id="intro-title"></p><p id="intro-text"></p><button id="intro-go">START MISSION</button></div>
+<div id="menu" class="screen"><div class="card">
+  <h1>SOLMAR HEAT</h1><h2>AN OPEN-WORLD CRIME GAME · SOLMAR BAY</h2>
+  <p>You are Danny “Wheels” Ortiz, getaway driver. You owe <b style="color:#f2c94c">$50,000</b> to loan shark Vincent Marlow — “The Shark”. Fixer Lena Cruz has four jobs for you. Finish them all, pay the debt, and walk away free.</p>
+  <p class="controls">WASD move · Mouse look · Shift sprint · E steal / exit car · W/S drive, A/D steer, Space handbrake<br>Left-click punch / shoot · Q switch pistol &amp; fists · Enter start mission · Esc pause · M manual save</p>
+  <button id="btn-start">▶ START</button><button id="btn-continue" class="ghost">CONTINUE</button>
+  <p style="text-align:center;font-size:12px;color:#999">An original game. No Rockstar content. Sound: procedural Web Audio.</p>
+</div></div>
+<div id="pause" class="screen" style="display:none"><div class="card"><h1 style="font-size:40px">PAUSED</h1><p style="text-align:center">Solmar Bay waits for no one — except now.</p><button id="btn-resume">RESUME</button><button id="btn-quit" class="ghost">QUIT TO TITLE</button></div></div>
+<div id="failed" class="screen" style="display:none"><div class="card"><h1 style="font-size:40px;color:#ff5040">BUSTED</h1><p id="failed-text" style="text-align:center">The job went sideways.</p><button id="btn-retry">↻ RETRY MISSION</button><button id="btn-quit2" class="ghost">QUIT TO TITLE</button></div></div>
+<div id="win" class="screen" style="display:none"><div class="card"><h1 style="font-size:44px">DEBT PAID</h1><p id="win-text" style="text-align:center"></p><button id="btn-again">↻ PLAY AGAIN</button><button id="btn-quit3" class="ghost">TITLE SCREEN</button></div></div>
+<p id="status" role="status" aria-live="polite"></p>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
